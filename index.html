@@ -269,8 +269,7 @@
     <div id="toastContainer" class="fixed top-5 left-1/2 transform -translate-x-1/2 z-[200] flex flex-col gap-3 w-full max-w-sm px-4 pointer-events-none"></div>
 
     <script>
-      // Jangan lupa 
-      const IS_PREVIEW = false; 
+        const IS_PREVIEW = false; 
         const GAS_URL = "https://script.google.com/macros/s/AKfycbx9EzoMjxmOycr6ZjlNmrMcTNz7Est4bqf13pgunLiuVMzHqNG8XoDuY5joo3GEdFOg-w/exec"; 
         
         let state = {
@@ -411,7 +410,30 @@
                         mockDB = mockDB.filter(t => t.id !== payload.id); return { status: 'success' };
                 }
             }
-            // Fetch logic for real GAS URL goes here
+            
+            try {
+                // Mengirim request POST ke Google Apps Script
+                const response = await fetch(GAS_URL, {
+                    method: 'POST',
+                    headers: {
+                        // Wajib menggunakan text/plain agar tidak memicu CORS Preflight Error
+                        'Content-Type': 'text/plain;charset=utf-8', 
+                    },
+                    body: JSON.stringify({ action: action, payload: payload })
+                });
+                
+                const result = await response.json();
+                
+                // Menangkap error jika backend mengembalikan status 'error'
+                if (result.status === 'error') {
+                    throw new Error(result.message || 'Terjadi kesalahan pada server.');
+                }
+                
+                return result;
+            } catch (error) {
+                console.error('API Call Error:', error);
+                throw new Error(error.message || 'Gagal terhubung ke server.');
+            }
         }
 
         async function handleLogin(e) {
