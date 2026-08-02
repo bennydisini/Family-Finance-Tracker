@@ -53,21 +53,17 @@
         ::-webkit-scrollbar { display: none; }
         * { -ms-overflow-style: none; scrollbar-width: none; }
 
+        /* Safe Area Padding for Mobile Bottom Nav */
+        .pb-safe { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+
         /* Glassmorphism Utilities */
         .glass {
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.5);
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
         }
         
-        .glass-dark {
-            background: linear-gradient(135deg, rgba(14, 165, 233, 0.9) 0%, rgba(2, 132, 199, 0.95) 100%);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 10px 30px -10px rgba(2, 132, 199, 0.5);
-        }
-
         /* Interactive Animations */
         .btn-press:active { transform: scale(0.95); transition: transform 0.1s; }
         .card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05); }
@@ -95,8 +91,9 @@
         .nav-btn i { transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
     </style>
 </head>
-<body class="text-slate-800 antialiased h-screen flex flex-col overflow-hidden">
 
+<body class="text-slate-800 antialiased h-screen h-[100dvh] flex flex-col overflow-hidden">
+    <!-- LOGIN VIEW -->
     <div id="loginView" class="h-full flex items-center justify-center fade-in px-4 absolute inset-0 z-50 bg-white">
         <div class="glass p-8 rounded-3xl shadow-[0_20px_50px_rgba(8,_112,_184,_0.1)] w-full max-w-md relative overflow-hidden">
             <!-- Decor bubbles -->
@@ -139,6 +136,7 @@
         </div>
     </div>
 
+    <!-- APP VIEW -->
     <div id="appView" class="hidden h-full flex flex-col w-full max-w-md mx-auto relative bg-[#f8fafc] shadow-2xl">
         
         <!-- Header (Glass) -->
@@ -164,7 +162,7 @@
         </main>
 
         <!-- Bottom Navigation (Glass) -->
-        <nav class="glass absolute bottom-0 w-full flex justify-around pb-safe pt-3 px-2 z-20 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.05)] pb-4 border-t-0">
+        <nav class="glass w-full flex justify-around pb-safe pt-3 px-2 z-20 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.05)] border-t-0 shrink-0 mt-auto">
             <button onclick="switchView('dashboard')" class="nav-btn active flex flex-col items-center p-2 text-slate-400 w-full transition-all group" data-target="dashboard">
                 <div class="w-12 h-8 rounded-full flex items-center justify-center group-[.active]:bg-brand-50 transition-colors mb-1">
                     <i class="fa-solid fa-house text-xl"></i>
@@ -191,6 +189,7 @@
         </button>
     </div>
 
+    <!-- TRANSACTION MODAL -->
     <div id="transactionModal" class="fixed inset-0 z-[100] flex items-end sm:items-center justify-center modal-overlay hidden opacity-0 transition-opacity duration-300">
         <div class="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-md shadow-2xl modal-content transform translate-y-full sm:translate-y-0 sm:scale-95 transition-transform duration-300 h-[85vh] sm:h-auto flex flex-col" id="modalContent">
             
@@ -256,7 +255,7 @@
                     </div>
                 </div>
 
-                <div class="pt-4 pb-4">
+                <div class="pt-4 pb-safe">
                     <button type="submit" id="btnSaveTx" class="btn-press w-full flex justify-center py-4 px-4 rounded-2xl shadow-lg shadow-brand-500/30 text-sm font-bold text-white bg-gradient-to-r from-brand-600 to-brand-500 hover:from-brand-700 hover:to-brand-600 transition-all">
                         <span id="btnSaveText">Simpan Transaksi</span>
                         <i id="saveTxSpinner" class="fa-solid fa-circle-notch fa-spin ml-2 hidden mt-0.5"></i>
@@ -266,13 +265,14 @@
         </div>
     </div>
 
+    <!-- Toast Notification Container -->
     <div id="toastContainer" class="fixed top-5 left-1/2 transform -translate-x-1/2 z-[200] flex flex-col gap-3 w-full max-w-sm px-4 pointer-events-none"></div>
 
     <script>
         const IS_PREVIEW = false; 
         const GAS_URL = "https://script.google.com/macros/s/AKfycbx9EzoMjxmOycr6ZjlNmrMcTNz7Est4bqf13pgunLiuVMzHqNG8XoDuY5joo3GEdFOg-w/exec"; 
         
-                let state = {
+        let state = {
             user: null,
             transactions: [],
             currentView: 'dashboard',
@@ -359,7 +359,6 @@
             const step = (timestamp) => {
                 if (!startTimestamp) startTimestamp = timestamp;
                 const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-                // Easing function easeOutExpo
                 const easeProgress = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
                 const currentVal = Math.floor(easeProgress * (end - start) + start);
                 obj.innerHTML = formatRp(currentVal);
@@ -416,20 +415,17 @@
                 }
             }
             
-            // Validasi jika URL GAS masih kosong/bawaan
             if (!GAS_URL || GAS_URL.includes("URL_GAS_DISINI")) {
                 throw new Error("URL GAS belum diatur dengan benar di kode Anda.");
             }
 
             try {
-                // Mengirim request POST ke Google Apps Script
                 const response = await fetch(GAS_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify({ action: action, payload: payload })
                 });
                 
-                // Mencegah error jika GAS mengembalikan HTML (misal redirect karena belum diset Anyone)
                 const textResult = await response.text();
                 let result;
                 try {
@@ -462,7 +458,6 @@
                     password: document.getElementById('password').value 
                 });
                 
-                // Pengecekan ekstra (Defensive) agar tidak error 'reading data'
                 if (!res || !res.data) throw new Error("Gagal menerima data akun dari server.");
                 
                 localStorage.setItem('kasku_session', JSON.stringify(res.data));
@@ -492,7 +487,6 @@
         async function loadTransactions() {
             try {
                 const res = await apiCall('getAll');
-                // Pengecekan aman untuk .data
                 state.transactions = (res && res.data) ? res.data : [];
             } catch (e) {
                 showToast(e.message || "Gagal memuat data riwayat", "error");
@@ -502,12 +496,10 @@
         function switchView(viewName) {
             state.currentView = viewName;
             
-            // Nav Animations
             document.querySelectorAll('.nav-btn').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.target === viewName);
             });
 
-            // Content Animations
             el.mainContent.innerHTML = '';
             el.mainContent.classList.remove('slide-up');
             void el.mainContent.offsetWidth; // trigger reflow
@@ -520,9 +512,7 @@
 
         function renderDashboard() {
             let totalIn = 0, totalOut = 0;
-            const now = new Date();
             
-            // Variabel untuk melacak Utang, Piutang, dan Investasi
             let beliInvestasi = 0, cairInvestasi = 0;
             let pinjamanCair = 0, bayarUtang = 0;
             let beriPinjaman = 0, terimaPiutang = 0;
@@ -540,15 +530,14 @@
                     if(t.kategori === 'Beri Pinjaman (Piutang)') beriPinjaman += t.nominal;
                 }
             });
+            
             const saldo = totalIn - totalOut;
-
-            // Kalkulasi ringkasan akhir
             const totalInvestasi = beliInvestasi - cairInvestasi;
             const sisaUtang = pinjamanCair - bayarUtang;
             const sisaPiutang = beriPinjaman - terimaPiutang;
 
             let html = `
-                <!-- Balance Card (Glassmorphism) -->
+                <!-- Balance Card -->
                 <div class="bg-gradient-to-br from-blue-500 to-sky-400 rounded-[2rem] p-6 text-white mb-6 shadow-xl shadow-blue-500/30 relative overflow-hidden">
                     <div class="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 rounded-full bg-white/10 blur-2xl"></div>
                     <div class="absolute bottom-0 left-0 -ml-8 -mb-8 w-24 h-24 rounded-full bg-white/10 blur-xl"></div>
@@ -556,15 +545,15 @@
                     <div class="relative z-10 flex justify-between items-start mb-6">
                         <div>
                             <p class="text-blue-100 text-sm font-medium mb-1">Total Saldo Aktif</p>
-                            <h2 class="text-4xl font-bold tracking-tight balance-animate" data-value="${saldo}">Rp 0</h2>
+                            <h2 class="text-4xl font-bold tracking-tight" id="saldoAnim">Rp 0</h2>
                         </div>
-                        <div class="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/20">
+                        <div class="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/20 shrink-0">
                             <i class="fa-solid fa-wallet text-white text-lg"></i>
                         </div>
                     </div>
 
                     <div class="flex gap-4 relative z-10">
-                        <div class="flex-1 bg-white/10 rounded-2xl p-3 backdrop-blur-sm border border-white/20">
+                        <div class="flex-1 bg-white/10 rounded-2xl p-3 backdrop-blur-sm border border-white/20 overflow-hidden">
                             <div class="flex items-center gap-2 mb-1 text-emerald-300">
                                 <i class="fa-solid fa-circle-down text-[10px]"></i>
                                 <span class="text-[10px] uppercase font-bold tracking-wider">Pemasukan</span>
@@ -572,7 +561,7 @@
                             <p class="font-semibold text-sm truncate">${formatRp(totalIn)}</p>
                         </div>
                         
-                        <div class="flex-1 bg-white/10 rounded-2xl p-3 backdrop-blur-sm border border-white/20">
+                        <div class="flex-1 bg-white/10 rounded-2xl p-3 backdrop-blur-sm border border-white/20 overflow-hidden">
                             <div class="flex items-center gap-2 mb-1 text-rose-300">
                                 <i class="fa-solid fa-circle-up text-[10px]"></i>
                                 <span class="text-[10px] uppercase font-bold tracking-wider">Pengeluaran</span>
@@ -582,56 +571,41 @@
                     </div>
                 </div>
 
-                <!-- Asset & Liability Cards (Scrollable) -->
-                <div class="flex gap-3 overflow-x-auto pb-4 mb-6 -mx-5 px-5 snap-x" style="scrollbar-width: none;">
-                    <div class="min-w-[140px] bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex-1 snap-center card-hover">
-                        <div class="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center mb-3">
-                            <i class="fa-solid fa-seedling text-emerald-500 text-sm"></i>
+                <!-- Asset & Liability Cards -->
+                <div class="flex gap-3 overflow-x-auto pb-4 mb-6 -mx-5 px-5 snap-x [&::-webkit-scrollbar]:hidden">
+                    <div class="min-w-[110px] bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex-1 snap-center flex flex-col items-center text-center card-hover">
+                        <div class="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center mb-2">
+                            <i class="fa-solid fa-seedling text-emerald-500"></i>
                         </div>
-                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Aset Investasi</p>
-                        <p class="text-sm font-bold text-slate-800">${formatRp(totalInvestasi)}</p>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Investasi</p>
+                        <p class="text-sm font-bold text-slate-800 truncate w-full">${formatRp(totalInvestasi)}</p>
                     </div>
                     
-                    <div class="min-w-[140px] bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex-1 snap-center card-hover">
-                        <div class="w-8 h-8 rounded-full bg-rose-50 flex items-center justify-center mb-3">
-                            <i class="fa-solid fa-credit-card text-rose-500 text-sm"></i>
+                    <div class="min-w-[110px] bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex-1 snap-center flex flex-col items-center text-center card-hover">
+                        <div class="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center mb-2">
+                            <i class="fa-solid fa-credit-card text-rose-500"></i>
                         </div>
-                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Sisa Utang</p>
-                        <p class="text-sm font-bold text-slate-800">${formatRp(sisaUtang)}</p>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Sisa Utang</p>
+                        <p class="text-sm font-bold text-slate-800 truncate w-full">${formatRp(sisaUtang)}</p>
                     </div>
 
-                    <div class="min-w-[140px] bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex-1 snap-center card-hover">
-                        <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center mb-3">
-                            <i class="fa-solid fa-handshake-angle text-blue-500 text-sm"></i>
+                    <div class="min-w-[110px] bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex-1 snap-center flex flex-col items-center text-center card-hover">
+                        <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center mb-2">
+                            <i class="fa-solid fa-handshake-angle text-blue-500"></i>
                         </div>
-                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Piutang (Hak Tagih)</p>
-                        <p class="text-sm font-bold text-slate-800">${formatRp(sisaPiutang)}</p>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Piutang</p>
+                        <p class="text-sm font-bold text-slate-800 truncate w-full">${formatRp(sisaPiutang)}</p>
                     </div>
                 </div>
-                <!-- Asset & Liability Cards (Scrollable) -->
-                <div class="flex gap-3 overflow-x-auto pb-4 mb-6 -mx-5 px-5 snap-x" style="scrollbar-width: none;">
-                    <div class="min-w-[140px] bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex-1 snap-center card-hover">
-                        <div class="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center mb-3">
-                            <i class="fa-solid fa-seedling text-emerald-500 text-sm"></i>
-                        </div>
-                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Aset Investasi</p>
-                        <p class="text-sm font-bold text-slate-800">${formatRp(totalInvestasi)}</p>
-                    </div>
-                    
-                    <div class="min-w-[140px] bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex-1 snap-center card-hover">
-                        <div class="w-8 h-8 rounded-full bg-rose-50 flex items-center justify-center mb-3">
-                            <i class="fa-solid fa-credit-card text-rose-500 text-sm"></i>
-                        </div>
-                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Sisa Utang</p>
-                        <p class="text-sm font-bold text-slate-800">${formatRp(sisaUtang)}</p>
-                    </div>
 
-                    <div class="min-w-[140px] bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex-1 snap-center card-hover">
-                        <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center mb-3">
-                            <i class="fa-solid fa-handshake-angle text-blue-500 text-sm"></i>
-                        </div>
-                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Piutang (Hak Tagih)</p>
-                        <p class="text-sm font-bold text-slate-800">${formatRp(sisaPiutang)}</p>
+                <!-- Interactive Chart Area -->
+                <div class="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 mb-8 card-hover transition-all">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-slate-800 text-sm">Visualisasi Pengeluaran</h3>
+                        <span class="text-[10px] font-medium bg-slate-100 text-slate-500 px-2 py-1 rounded-lg">Semua Waktu</span>
+                    </div>
+                    <div class="relative h-48 w-full flex justify-center items-center">
+                        ${totalOut === 0 ? '<p class="text-xs text-slate-400">Belum ada data pengeluaran</p>' : '<canvas id="expenseChart"></canvas>'}
                     </div>
                 </div>
 
@@ -654,7 +628,6 @@
             html += `</div></div>`;
             el.mainContent.innerHTML = html;
 
-            // Trigger Animations
             setTimeout(() => {
                 animateValue("saldoAnim", 0, saldo, 1500);
                 if (totalOut > 0) renderExpenseChart();
@@ -672,7 +645,6 @@
 
             const labels = Object.keys(dataMap);
             const data = Object.values(dataMap);
-            // Dynamic colors based on Tailwind palette
             const colors = ['#f43f5e', '#f97316', '#8b5cf6', '#0ea5e9', '#10b981', '#64748b'];
 
             if (state.chartInstance) state.chartInstance.destroy();
@@ -732,7 +704,6 @@
             const symbol = isPemasukan ? '+' : '-';
             const colorClass = isPemasukan ? 'text-emerald-600' : 'text-slate-800';
             
-            // Format Date (e.g., 12 Aug)
             const dateObj = new Date(t.tanggal);
             const dateStr = dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
 
@@ -767,7 +738,6 @@
             `;
         }
 
-        // Reports View with Interactive Tabs
         function renderReports(filter = 'bulan') {
             const now = new Date();
             let filteredTx = state.transactions.filter(t => {
@@ -797,7 +767,6 @@
             let html = `
                 <div class="sticky top-0 bg-[#f8fafc] z-10 pb-4 pt-1">
                     <h2 class="text-xl font-bold text-slate-800 mb-4">Laporan Keuangan</h2>
-                    <!-- Filter Tabs -->
                     <div class="flex p-1 bg-slate-200/50 rounded-2xl backdrop-blur-md">
                         <button onclick="renderReports('hari')" class="flex-1 py-2 text-xs font-semibold rounded-xl transition-all ${getBtnClass('hari')}">Hari Ini</button>
                         <button onclick="renderReports('minggu')" class="flex-1 py-2 text-xs font-semibold rounded-xl transition-all ${getBtnClass('minggu')}">7 Hari</button>
@@ -821,7 +790,6 @@
                 sorted.forEach(([kat, nom], index) => {
                     let percent = Math.round((nom / totalPengeluaran) * 100);
                     const meta = getCategoryMeta('pengeluaran', kat);
-                    // Add slight delay to animation
                     html += `
                         <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 fade-in" style="animation-delay: ${index * 0.1}s; opacity:0;">
                             <div class="flex justify-between items-center mb-3">
@@ -843,7 +811,6 @@
             html += `</div>`;
             el.mainContent.innerHTML = html;
 
-            // Trigger Progress Bar Animation
             setTimeout(() => {
                 document.querySelectorAll('[data-target-width]').forEach(bar => {
                     bar.style.width = bar.dataset.targetWidth;
@@ -862,7 +829,6 @@
 
         function openModal(mode, data = null) {
             el.modal.classList.remove('hidden');
-            // Animate In
             void el.modal.offsetWidth;
             el.modal.classList.remove('opacity-0');
             el.modalContent.classList.remove('translate-y-full', 'sm:scale-95');
@@ -923,7 +889,7 @@
                 showToast(action === 'create' ? "Berhasil dicatat!" : "Data diperbarui!");
                 closeModal();
                 await loadTransactions();
-                switchView(state.currentView); // Refresh current view
+                switchView(state.currentView);
             } catch (err) {
                 showToast(err.message, 'error');
             } finally {
