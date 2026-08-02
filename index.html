@@ -283,13 +283,18 @@
             pemasukan: [
                 { name: 'Gaji', icon: 'fa-money-bill-wave', color: 'bg-emerald-100 text-emerald-600' },
                 { name: 'Bonus', icon: 'fa-gift', color: 'bg-teal-100 text-teal-600' },
-                { name: 'Investasi', icon: 'fa-chart-line', color: 'bg-blue-100 text-blue-600' },
+                { name: 'Pinjaman Cair (Utang)', icon: 'fa-hand-holding-dollar', color: 'bg-amber-100 text-amber-600' },
+                { name: 'Pencairan Investasi', icon: 'fa-seedling', color: 'bg-emerald-100 text-emerald-600' },
+                { name: 'Terima Piutang', icon: 'fa-money-bill-transfer', color: 'bg-blue-100 text-blue-600' },
                 { name: 'Lainnya', icon: 'fa-plus', color: 'bg-slate-100 text-slate-600' }
             ],
             pengeluaran: [
                 { name: 'Makan & Dapur', icon: 'fa-utensils', color: 'bg-orange-100 text-orange-600' },
                 { name: 'Tagihan', icon: 'fa-file-invoice-dollar', color: 'bg-red-100 text-red-600' },
                 { name: 'Transportasi', icon: 'fa-car', color: 'bg-indigo-100 text-indigo-600' },
+                { name: 'Beli Investasi', icon: 'fa-chart-pie', color: 'bg-emerald-100 text-emerald-600' },
+                { name: 'Bayar Utang', icon: 'fa-credit-card', color: 'bg-rose-100 text-rose-600' },
+                { name: 'Beri Pinjaman (Piutang)', icon: 'fa-handshake-angle', color: 'bg-cyan-100 text-cyan-600' },
                 { name: 'Kesehatan', icon: 'fa-notes-medical', color: 'bg-rose-100 text-rose-600' },
                 { name: 'Pendidikan', icon: 'fa-book', color: 'bg-cyan-100 text-cyan-600' },
                 { name: 'Hiburan', icon: 'fa-gamepad', color: 'bg-purple-100 text-purple-600' },
@@ -411,20 +416,29 @@
                 }
             }
             
+            // Validasi jika URL GAS masih kosong/bawaan
+            if (!GAS_URL || GAS_URL.includes("URL_GAS_DISINI")) {
+                throw new Error("URL GAS belum diatur dengan benar di kode Anda.");
+            }
+
             try {
                 // Mengirim request POST ke Google Apps Script
                 const response = await fetch(GAS_URL, {
                     method: 'POST',
-                    headers: {
-                        // Wajib menggunakan text/plain agar tidak memicu CORS Preflight Error
-                        'Content-Type': 'text/plain;charset=utf-8', 
-                    },
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify({ action: action, payload: payload })
                 });
                 
-                const result = await response.json();
+                // Mencegah error jika GAS mengembalikan HTML (misal redirect karena belum diset Anyone)
+                const textResult = await response.text();
+                let result;
+                try {
+                    result = JSON.parse(textResult);
+                } catch (e) {
+                    console.error("Respons bukan JSON:", textResult);
+                    throw new Error("Koneksi gagal. Pastikan Akses Web App diatur ke 'Siapa saja' (Anyone).");
+                }
                 
-                // Menangkap error jika backend mengembalikan status 'error'
                 if (result.status === 'error') {
                     throw new Error(result.message || 'Terjadi kesalahan pada server.');
                 }
@@ -447,6 +461,10 @@
                     username: document.getElementById('username').value, 
                     password: document.getElementById('password').value 
                 });
+                
+                // Pengecekan ekstra (Defensive) agar tidak error 'reading data'
+                if (!res || !res.data) throw new Error("Gagal menerima data akun dari server.");
+                
                 localStorage.setItem('kasku_session', JSON.stringify(res.data));
                 state.user = res.data;
                 showApp();
@@ -474,9 +492,10 @@
         async function loadTransactions() {
             try {
                 const res = await apiCall('getAll');
-                state.transactions = res.data || [];
+                // Pengecekan aman untuk .data
+                state.transactions = (res && res.data) ? res.data : [];
             } catch (e) {
-                showToast("Gagal memuat data", "error");
+                showToast(e.message || "Gagal memuat data riwayat", "error");
             }
         }
 
@@ -503,11 +522,30 @@
             let totalIn = 0, totalOut = 0;
             const now = new Date();
             
+            // Variabel untuk melacak Utang, Piutang, dan Investasi
+            let beliInvestasi = 0, cairInvestasi = 0;
+            let pinjamanCair = 0, bayarUtang = 0;
+            let beriPinjaman = 0, terimaPiutang = 0;
+
             state.transactions.forEach(t => {
-                if (t.jenis_transaksi === 'pemasukan') totalIn += t.nominal;
-                else totalOut += t.nominal;
+                if (t.jenis_transaksi === 'pemasukan') {
+                    totalIn += t.nominal;
+                    if(t.kategori === 'Pencairan Investasi') cairInvestasi += t.nominal;
+                    if(t.kategori === 'Pinjaman Cair (Utang)') pinjamanCair += t.nominal;
+                    if(t.kategori === 'Terima Piutang') terimaPiutang += t.nominal;
+                } else {
+                    totalOut += t.nominal;
+                    if(t.kategori === 'Beli Investasi') beliInvestasi += t.nominal;
+                    if(t.kategori === 'Bayar Utang') bayarUtang += t.nominal;
+                    if(t.kategori === 'Beri Pinjaman (Piutang)') beriPinjaman += t.nominal;
+                }
             });
             const saldo = totalIn - totalOut;
+
+            // Kalkulasi ringkasan akhir
+            const totalInvestasi = beliInvestasi - cairInvestasi;
+            const sisaUtang = pinjamanCair - bayarUtang;
+            const sisaPiutang = beriPinjaman - terimaPiutang;
 
             let html = `
                 <!-- Balance Card (Glassmorphism) -->
@@ -523,13 +561,6 @@
                     
                     <div class="flex gap-4">
                         <div class="flex-1 bg-white/10 rounded-2xl p-3 backdrop-blur-sm border border-white/10">
-                            <div class="flex items-center gap-2 mb-1 text-emerald-300">
-                                <i class="fa-solid fa-circle-down text-[10px]"></i>
-                                <span class="text-[10px] uppercase font-bold tracking-wider">Pemasukan</span>
-                            </div>
-                            <p class="font-semibold text-sm truncate">${formatRp(totalIn)}</p>
-                        </div>
-                        <div class="flex-1 bg-white/10 rounded-2xl p-3 backdrop-blur-sm border border-white/10">
                             <div class="flex items-center gap-2 mb-1 text-rose-300">
                                 <i class="fa-solid fa-circle-up text-[10px]"></i>
                                 <span class="text-[10px] uppercase font-bold tracking-wider">Pengeluaran</span>
@@ -539,14 +570,30 @@
                     </div>
                 </div>
 
-                <!-- Interactive Chart Area -->
-                <div class="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 mb-8 card-hover transition-all">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="font-bold text-slate-800 text-sm">Visualisasi Pengeluaran</h3>
-                        <span class="text-[10px] font-medium bg-slate-100 text-slate-500 px-2 py-1 rounded-lg">Semua Waktu</span>
+                <!-- Asset & Liability Cards (Scrollable) -->
+                <div class="flex gap-3 overflow-x-auto pb-4 mb-6 -mx-5 px-5 snap-x" style="scrollbar-width: none;">
+                    <div class="min-w-[140px] bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex-1 snap-center card-hover">
+                        <div class="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center mb-3">
+                            <i class="fa-solid fa-seedling text-emerald-500 text-sm"></i>
+                        </div>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Aset Investasi</p>
+                        <p class="text-sm font-bold text-slate-800">${formatRp(totalInvestasi)}</p>
                     </div>
-                    <div class="relative h-48 w-full flex justify-center items-center">
-                        ${totalOut === 0 ? '<p class="text-xs text-slate-400">Belum ada data pengeluaran</p>' : '<canvas id="expenseChart"></canvas>'}
+                    
+                    <div class="min-w-[140px] bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex-1 snap-center card-hover">
+                        <div class="w-8 h-8 rounded-full bg-rose-50 flex items-center justify-center mb-3">
+                            <i class="fa-solid fa-credit-card text-rose-500 text-sm"></i>
+                        </div>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Sisa Utang</p>
+                        <p class="text-sm font-bold text-slate-800">${formatRp(sisaUtang)}</p>
+                    </div>
+
+                    <div class="min-w-[140px] bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex-1 snap-center card-hover">
+                        <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center mb-3">
+                            <i class="fa-solid fa-handshake-angle text-blue-500 text-sm"></i>
+                        </div>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Piutang (Hak Tagih)</p>
+                        <p class="text-sm font-bold text-slate-800">${formatRp(sisaPiutang)}</p>
                     </div>
                 </div>
 
