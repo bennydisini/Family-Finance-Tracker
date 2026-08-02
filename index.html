@@ -405,7 +405,7 @@
                         if(payload.username === 'admin' && payload.password === 'admin123') 
                             return { status: 'success', data: { username: 'Admin' } };
                         throw new Error("Username/Password salah");
-                    case 'getAll': return { status: 'success', data: [...mockDB].sort((a,b) => new Date(b.tanggal) - new Date(a.tanggal)) };
+                    case 'getAll': return { status: 'success', data: [...mockDB] };
                     case 'create':
                         const newTx = { ...payload, id: 'T'+Date.now() };
                         mockDB.push(newTx); return { status: 'success' };
@@ -489,7 +489,20 @@
         async function loadTransactions() {
             try {
                 const res = await apiCall('getAll');
-                state.transactions = (res && res.data) ? res.data : [];
+                let data = (res && res.data) ? res.data : [];
+                
+                // Urutkan transaksi agar yang terbaru berada di urutan paling atas.
+                // 1. Urutkan berdasarkan tanggal (Terbaru -> Terlama)
+                // 2. Jika tanggalnya sama, urutkan berdasarkan urutan waktu input/ID (Terbaru -> Terlama)
+                state.transactions = data.sort((a, b) => {
+                    const timeA = new Date(a.tanggal).getTime();
+                    const timeB = new Date(b.tanggal).getTime();
+                    
+                    if (timeB !== timeA) return timeB - timeA;
+                    
+                    // Fallback: ID berformat T+Timestamp, sehingga yang nilainya lebih besar adalah yang terbaru
+                    return b.id.localeCompare(a.id);
+                });
             } catch (e) {
                 showToast(e.message || "Gagal memuat data riwayat", "error");
             }
