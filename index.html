@@ -89,12 +89,15 @@
         .nav-btn.active i { transform: translateY(-4px) scale(1.1); color: #0ea5e9; }
         .nav-btn.active span { font-weight: 600; color: #0ea5e9; }
         .nav-btn i { transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+        /* Custom Safe Area Padding for Bottom Nav */
+        .pb-safe { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
     </style>
 </head>
 
 <body class="text-slate-800 antialiased h-screen h-[100dvh] flex flex-col overflow-hidden">
     <!-- LOGIN VIEW -->
-    <div id="loginView" class="h-full flex items-center justify-center fade-in px-4 absolute inset-0 z-50 bg-white">
+    <<div id="loginView" class="h-full flex items-center justify-center fade-in px-4 absolute inset-0 z-50 bg-white">
         <div class="glass p-8 rounded-3xl shadow-[0_20px_50px_rgba(8,_112,_184,_0.1)] w-full max-w-md relative overflow-hidden">
             <!-- Decor bubbles -->
             <div class="absolute -top-10 -right-10 w-32 h-32 bg-brand-400 opacity-20 rounded-full blur-2xl"></div>
@@ -158,28 +161,28 @@
 
         <!-- Main Content Area -->
         <main class="flex-1 overflow-y-auto px-5 pt-4 pb-28 relative z-0" id="mainContent">
-            <!-- Dynamic Content Injected Here -->
+        <!-- Dynamic Content Injected Here -->
         </main>
 
         <!-- Bottom Navigation (Glass) -->
-        <nav class="glass w-full flex justify-around pb-safe pt-3 px-2 z-20 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.05)] border-t-0 shrink-0 mt-auto">
+        <nav class="glass w-full flex justify-around pb-safe pt-4 px-2 z-20 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.05)] border-t-0 shrink-0 mt-auto">
             <button onclick="switchView('dashboard')" class="nav-btn active flex flex-col items-center p-2 text-slate-400 w-full transition-all group" data-target="dashboard">
-                <div class="w-12 h-8 rounded-full flex items-center justify-center group-[.active]:bg-brand-50 transition-colors mb-1">
-                    <i class="fa-solid fa-house text-xl"></i>
+                <div class="w-14 h-10 rounded-full flex items-center justify-center group-[.active]:bg-brand-50 transition-colors mb-1.5">
+                    <i class="fa-solid fa-house text-2xl"></i>
                 </div>
-                <span class="text-[10px] font-medium">Beranda</span>
+                <span class="text-[11px] font-medium tracking-wide">Beranda</span>
             </button>
             <button onclick="switchView('transactions')" class="nav-btn flex flex-col items-center p-2 text-slate-400 w-full transition-all group" data-target="transactions">
-                <div class="w-12 h-8 rounded-full flex items-center justify-center group-[.active]:bg-brand-50 transition-colors mb-1">
-                    <i class="fa-solid fa-list-ul text-xl"></i>
+                <div class="w-14 h-10 rounded-full flex items-center justify-center group-[.active]:bg-brand-50 transition-colors mb-1.5">
+                    <i class="fa-solid fa-list-ul text-2xl"></i>
                 </div>
-                <span class="text-[10px] font-medium">Riwayat</span>
+                <span class="text-[11px] font-medium tracking-wide">Riwayat</span>
             </button>
             <button onclick="switchView('reports')" class="nav-btn flex flex-col items-center p-2 text-slate-400 w-full transition-all group" data-target="reports">
-                <div class="w-12 h-8 rounded-full flex items-center justify-center group-[.active]:bg-brand-50 transition-colors mb-1">
-                    <i class="fa-solid fa-chart-pie text-xl"></i>
+                <div class="w-14 h-10 rounded-full flex items-center justify-center group-[.active]:bg-brand-50 transition-colors mb-1.5">
+                    <i class="fa-solid fa-chart-pie text-2xl"></i>
                 </div>
-                <span class="text-[10px] font-medium">Laporan</span>
+                <span class="text-[11px] font-medium tracking-wide">Laporan</span>
             </button>
         </nav>
         
